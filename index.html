@@ -97,7 +97,7 @@
 let items = [];
 let selectedOrders = [];
 
-// Fetch the Excel file from server (GitHub hosted)
+// Fetch the Excel file from server
 fetch('kemsyn_google_form.xlsx')
   .then(response => response.arrayBuffer())
   .then(data => {
@@ -134,8 +134,8 @@ function displayResults(results) {
       <strong>🏷️ ${item[1] || ''}</strong><br>
       📦 ${(item.slice(2,8) || []).join(' | ')}
       <br><br>
-      <label>Order Qty:</label> <input type="number" id="orderQty_${item[0]}" min="0" value="0"><br>
-      <label>Free Qty:</label> <input type="number" id="freeQty_${item[0]}" min="0" value="0"><br><br>
+      <label>Order Qty:</label> <input type="number" id="orderQty_${item[0]}" inputmode="numeric" pattern="[0-9]*" placeholder="Order Qty"><br>
+      <label>Free Qty:</label> <input type="number" id="freeQty_${item[0]}" inputmode="numeric" pattern="[0-9]*" placeholder="Free Qty"><br><br>
       <button onclick='addToOrder(${JSON.stringify(item)})'>➕ Add to Order</button>
     `;
     container.appendChild(div);
@@ -153,7 +153,8 @@ function addToOrder(item) {
     sapCode: item[0],
     brandName: item[1],
     orderQty: orderQty,
-    freeQty: freeQty
+    freeQty: freeQty,
+    totalQty: orderQty + freeQty
   });
   alert(`✅ Added ${item[1]} to your order!`);
 }
@@ -173,14 +174,15 @@ function downloadExcel() {
   }
 
   const worksheetData = [
-    ["Party Name", "Salesman Name", "SAP Code", "Brand Name", "Order Qty", "Free Qty"],
+    ["Party Name", "Salesman Name", "SAP Code", "Brand Name", "Order Qty", "Free Qty", "Total Qty"],
     ...selectedOrders.map(order => [
       partyName,
       salesmanName,
       order.sapCode,
       order.brandName,
       order.orderQty,
-      order.freeQty
+      order.freeQty,
+      order.totalQty
     ])
   ];
 
