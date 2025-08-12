@@ -16,7 +16,6 @@
     display: none;
     padding: 20px;
     min-height: 100vh;
-    transition: transform 0.4s ease-in-out;
   }
   .active {
     display: block;
@@ -28,12 +27,13 @@
   }
   .input-group {
     margin-bottom: 15px;
+    position: relative;
   }
   label {
     font-weight: bold;
     font-size: 1.1em;
   }
-  input, select, button {
+  input, button {
     width: 100%;
     padding: 10px;
     margin-top: 5px;
@@ -41,7 +41,7 @@
     border: none;
     font-size: 1em;
   }
-  input, select {
+  input {
     background: #fff;
   }
   button {
@@ -52,6 +52,26 @@
   }
   button:hover {
     background: #ff9671;
+  }
+  .suggestions {
+    background: white;
+    border-radius: 8px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .suggestions div {
+    padding: 8px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
+  .suggestions div:hover {
+    background: #f1f1f1;
   }
   .cart {
     background: rgba(255,255,255,0.9);
@@ -69,13 +89,12 @@
   .cart-item:last-child {
     border-bottom: none;
   }
-  .remove-btn {
-    background: red;
-    color: white;
-    border: none;
-    padding: 5px 8px;
-    border-radius: 6px;
+  .remove-link {
+    color: red;
     cursor: pointer;
+    font-weight: bold;
+    font-size: 1.2em;
+    margin-left: 8px;
   }
   .total {
     font-weight: bold;
@@ -111,12 +130,11 @@
   <div class="input-group">
     <label>Search Item</label>
     <input type="text" id="searchBox" placeholder="Search brand...">
+    <div id="suggestions" class="suggestions" style="display:none;"></div>
   </div>
   <div class="input-group">
-    <label>Select Item</label>
-    <select id="itemSelect">
-      <option value="">-- Select an item --</option>
-    </select>
+    <label>Selected Item</label>
+    <input type="text" id="selectedItem" readonly>
   </div>
   <div class="input-group">
     <label>Qty</label>
@@ -136,11 +154,12 @@
 <script>
 let items = [];
 let cart = [];
+let selectedItemData = null;
 
-// Set today's date in date picker
+// Set today's date
 document.getElementById("orderDate").valueAsDate = new Date();
 
-// Fetch Excel file from server
+// Fetch Excel file
 fetch('kemsyn_google_form.xlsx')
   .then(res => res.arrayBuffer())
   .then(data => {
@@ -163,31 +182,47 @@ function goToScreen2() {
 
 document.getElementById("searchBox").addEventListener("input", function() {
   const keyword = this.value.toLowerCase();
-  const filtered = items.filter(row => (row[1] || "").toLowerCase().includes(keyword));
-  const select = document.getElementById("itemSelect");
-  select.innerHTML = '<option value="">-- Select an item --</option>';
-  filtered.forEach(row => {
-    const opt = document.createElement("option");
-    opt.value = row[0]; // SAP Code
-    opt.textContent = `${row[1]} (₹${row[4]})`; // Brand + Price
-    select.appendChild(opt);
+  const suggestionsDiv = document.getElementById("suggestions");
+  if (keyword.length < 2) {
+    suggestionsDiv.style.display = "none";
+    return;
+  }
+  const matches = items.filter(row => (row[1] || "").toLowerCase().includes(keyword));
+  suggestionsDiv.innerHTML = "";
+  matches.forEach(row => {
+    const div = document.createElement("div");
+    div.textContent = `${row[1]} (₹${row[5]})`;
+    div.onclick = () => {
+      selectedItemData = row;
+      document.getElementById("selectedItem").value = row[1];
+      suggestionsDiv.style.display = "none";
+      document.getElementById("itemQty").focus();
+    };
+    suggestionsDiv.appendChild(div);
   });
+  suggestionsDiv.style.display = matches.length ? "block" : "none";
 });
 
 function addToCart() {
-  const sapCode = document.getElementById("itemSelect").value;
-  const qty = parseInt(document.getElementById("itemQty").value) || 0;
-  if (!sapCode || qty <= 0) {
-    alert("⚠️ Please select an item and enter quantity!");
+  if (!selectedItemData) {
+    alert("⚠️ Please select an item!");
     return;
   }
-  const itemData = items.find(i => i[0] == sapCode);
-  const brand = itemData[1];
-  const price = parseFloat(itemData[4]) || 0;
+  const qty = parseInt(document.getElementById("itemQty").value) || 0;
+  if (qty <= 0) {
+    alert("⚠️ Please enter quantity!");
+    return;
+  }
+  const sapCode = selectedItemData[0];
+  const brand = selectedItemData[1];
+  const price = parseFloat(selectedItemData[5]) || 0;
   const lineTotal = price * qty;
 
   cart.push({ sapCode, brand, qty, price, lineTotal });
+  selectedItemData = null;
+  document.getElementById("selectedItem").value = "";
   document.getElementById("itemQty").value = "";
+  document.getElementById("searchBox").value = "";
   updateCart();
 }
 
@@ -200,8 +235,8 @@ function updateCart() {
     const div = document.createElement("div");
     div.className = "cart-item";
     div.innerHTML = `
-      ${item.brand} - Qty: ${item.qty} - ₹${item.price} = ₹${item.lineTotal}
-      <button class="remove-btn" onclick="removeFromCart(${index})">❌</button>
+      ${item.brand} - Qty: ${item.qty} - ₹${item.price} = ₹${item.lineTotal.toFixed(2)}
+      <span class="remove-link" onclick="removeFromCart(${index})">×</span>
     `;
     cartDiv.appendChild(div);
   });
@@ -221,14 +256,13 @@ function downloadExcel() {
   const party = document.getElementById("partyName").value.trim();
   const salesman = document.getElementById("salesmanName").value.trim();
   const date = document.getElementById("orderDate").value;
-
   let totalValue = cart.reduce((sum, item) => sum + item.lineTotal, 0);
 
   const wsData = [
     ["Party Name", "Salesman Name", "Date", "SAP Code", "Brand Name", "Qty", "Unit Price", "Line Total"],
-    ...cart.map(i => [party, salesman, date, i.sapCode, i.brand, i.qty, i.price, i.lineTotal]),
+    ...cart.map(i => [party, salesman, date, i.sapCode, i.brand, i.qty, i.price, i.lineTotal.toFixed(2)]),
     [],
-    ["", "", "", "", "", "", "Total Order Value", totalValue]
+    ["", "", "", "", "", "", "Total Order Value", totalValue.toFixed(2)]
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
