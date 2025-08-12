@@ -1,196 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>🛒 Kemsyn Order Form</title>
-  <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-    h1 {
-      text-align: center;
-      color: #fff;
-    }
-    .input-group {
-      margin-bottom: 15px;
-    }
-    label {
-      font-weight: bold;
-      font-size: 1.2em;
-    }
-    input[type="text"], input[type="number"], button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1em;
-    }
-    input[type="text"], input[type="number"] {
-      background: #fff;
-    }
-    button {
-      background: #ff6f91;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    button:hover {
-      background: #ff9671;
-    }
-    #searchResults {
-      background: #ffffffa8;
-      margin-top: 20px;
-      border-radius: 10px;
-      padding: 10px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .item {
-      background: #f7f7f7;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
-      animation: fadeIn 0.5s;
-    }
-    .item:hover {
-      background: #e0f7fa;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🛒 Kemsyn Order Form</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+    margin: 0;
+    padding: 0;
+  }
+  .screen {
+    display: none;
+    padding: 20px;
+    min-height: 100vh;
+    transition: transform 0.4s ease-in-out;
+  }
+  .active {
+    display: block;
+  }
+  h1 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  .input-group {
+    margin-bottom: 15px;
+  }
+  label {
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+  input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1em;
+  }
+  input, select {
+    background: #fff;
+  }
+  button {
+    background: #ff6f91;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #ff9671;
+  }
+  .cart {
+    background: rgba(255,255,255,0.9);
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 15px;
+  }
+  .cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+  }
+  .cart-item:last-child {
+    border-bottom: none;
+  }
+  .remove-btn {
+    background: red;
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .total {
+    font-weight: bold;
+    font-size: 1.2em;
+    text-align: right;
+    margin-top: 10px;
+  }
+</style>
 </head>
 <body>
 
-<h1>🎉 Kemsyn Order Form</h1>
-
-<div class="input-group">
-  <label>🧾 Party Name</label>
-  <input type="text" id="partyName" placeholder="Enter party name">
+<!-- Screen 1 -->
+<div class="screen active" id="screen1">
+  <h1>🧾 Order Details</h1>
+  <div class="input-group">
+    <label>Party Name</label>
+    <input type="text" id="partyName" placeholder="Enter party name">
+  </div>
+  <div class="input-group">
+    <label>Salesman Name</label>
+    <input type="text" id="salesmanName" placeholder="Enter salesman name">
+  </div>
+  <div class="input-group">
+    <label>Date</label>
+    <input type="date" id="orderDate">
+  </div>
+  <button onclick="goToScreen2()">➡️ Next</button>
 </div>
 
-<div class="input-group">
-  <label>🧑‍💼 Salesman Name</label>
-  <input type="text" id="salesmanName" placeholder="Enter salesman name">
+<!-- Screen 2 -->
+<div class="screen" id="screen2">
+  <h1>🛒 Order Items</h1>
+  <div class="input-group">
+    <label>Search Item</label>
+    <input type="text" id="searchBox" placeholder="Search brand...">
+  </div>
+  <div class="input-group">
+    <label>Select Item</label>
+    <select id="itemSelect">
+      <option value="">-- Select an item --</option>
+    </select>
+  </div>
+  <div class="input-group">
+    <label>Qty</label>
+    <input type="number" id="itemQty" inputmode="numeric" placeholder="Enter quantity">
+  </div>
+  <button onclick="addToCart()">➕ Add to Cart</button>
+
+  <div class="cart" id="cartContainer">
+    <h3>🛍 Cart</h3>
+    <div id="cartItems"></div>
+    <div class="total">Total: ₹<span id="totalValue">0</span></div>
+  </div>
+
+  <button onclick="downloadExcel()">📥 Submit Order</button>
 </div>
-
-<div class="input-group">
-  <label>🔍 Search Item</label>
-  <input type="text" id="searchBox" placeholder="Start typing to search...">
-</div>
-
-<div id="searchResults">Loading products... ⏳</div>
-
-<button onclick="downloadExcel()">📥 Submit Order</button>
 
 <script>
 let items = [];
-let selectedOrders = [];
+let cart = [];
 
-// Fetch the Excel file from server
+// Set today's date in date picker
+document.getElementById("orderDate").valueAsDate = new Date();
+
+// Fetch Excel file from server
 fetch('kemsyn_google_form.xlsx')
-  .then(response => response.arrayBuffer())
+  .then(res => res.arrayBuffer())
   .then(data => {
     const workbook = XLSX.read(data, {type: "array"});
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-
-    // Skip the header row (row 0)
-    items = jsonData.slice(1);
-
-    document.getElementById('searchBox').addEventListener('input', function() {
-      const keyword = this.value.toLowerCase();
-      const results = items.filter(item => (item[1] || '').toLowerCase().includes(keyword));
-      displayResults(results);
-    });
-
-    document.getElementById('searchResults').innerHTML = "Start typing to search your items! 🔎";
-  })
-  .catch(error => {
-    console.error('Error loading Excel:', error);
-    document.getElementById('searchResults').innerHTML = "❌ Failed to load product list.";
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1});
+    items = jsonData.slice(1); // Skip header row
   });
 
-function displayResults(results) {
-  const container = document.getElementById('searchResults');
-  container.innerHTML = '';
-
-  results.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'item';
-    div.innerHTML = `
-      <strong>🆔 ${item[0] || ''}</strong><br>
-      <strong>🏷️ ${item[1] || ''}</strong><br>
-      📦 ${(item.slice(2,8) || []).join(' | ')}
-      <br><br>
-      <label>Order Qty:</label> <input type="number" id="orderQty_${item[0]}" inputmode="numeric" pattern="[0-9]*" placeholder="Order Qty"><br>
-      <label>Free Qty:</label> <input type="number" id="freeQty_${item[0]}" inputmode="numeric" pattern="[0-9]*" placeholder="Free Qty"><br><br>
-      <button onclick='addToOrder(${JSON.stringify(item)})'>➕ Add to Order</button>
-    `;
-    container.appendChild(div);
-  });
-}
-
-function addToOrder(item) {
-  const orderQty = parseInt(document.getElementById(`orderQty_${item[0]}`).value) || 0;
-  const freeQty = parseInt(document.getElementById(`freeQty_${item[0]}`).value) || 0;
-  if (orderQty <= 0 && freeQty <= 0) {
-    alert("⚠️ Please enter at least one quantity!");
+function goToScreen2() {
+  const party = document.getElementById("partyName").value.trim();
+  const salesman = document.getElementById("salesmanName").value.trim();
+  if (!party || !salesman) {
+    alert("⚠️ Please fill Party Name and Salesman Name!");
     return;
   }
-  selectedOrders.push({
-    sapCode: item[0],
-    brandName: item[1],
-    orderQty: orderQty,
-    freeQty: freeQty,
-    totalQty: orderQty + freeQty
+  document.getElementById("screen1").classList.remove("active");
+  document.getElementById("screen2").classList.add("active");
+}
+
+document.getElementById("searchBox").addEventListener("input", function() {
+  const keyword = this.value.toLowerCase();
+  const filtered = items.filter(row => (row[1] || "").toLowerCase().includes(keyword));
+  const select = document.getElementById("itemSelect");
+  select.innerHTML = '<option value="">-- Select an item --</option>';
+  filtered.forEach(row => {
+    const opt = document.createElement("option");
+    opt.value = row[0]; // SAP Code
+    opt.textContent = `${row[1]} (₹${row[4]})`; // Brand + Price
+    select.appendChild(opt);
   });
-  alert(`✅ Added ${item[1]} to your order!`);
+});
+
+function addToCart() {
+  const sapCode = document.getElementById("itemSelect").value;
+  const qty = parseInt(document.getElementById("itemQty").value) || 0;
+  if (!sapCode || qty <= 0) {
+    alert("⚠️ Please select an item and enter quantity!");
+    return;
+  }
+  const itemData = items.find(i => i[0] == sapCode);
+  const brand = itemData[1];
+  const price = parseFloat(itemData[4]) || 0;
+  const lineTotal = price * qty;
+
+  cart.push({ sapCode, brand, qty, price, lineTotal });
+  document.getElementById("itemQty").value = "";
+  updateCart();
+}
+
+function updateCart() {
+  const cartDiv = document.getElementById("cartItems");
+  cartDiv.innerHTML = "";
+  let totalValue = 0;
+  cart.forEach((item, index) => {
+    totalValue += item.lineTotal;
+    const div = document.createElement("div");
+    div.className = "cart-item";
+    div.innerHTML = `
+      ${item.brand} - Qty: ${item.qty} - ₹${item.price} = ₹${item.lineTotal}
+      <button class="remove-btn" onclick="removeFromCart(${index})">❌</button>
+    `;
+    cartDiv.appendChild(div);
+  });
+  document.getElementById("totalValue").textContent = totalValue.toFixed(2);
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  updateCart();
 }
 
 function downloadExcel() {
-  const partyName = document.getElementById('partyName').value.trim();
-  const salesmanName = document.getElementById('salesmanName').value.trim();
-  
-  if (!partyName || !salesmanName) {
-    alert('⚠️ Please fill Party Name and Salesman Name!');
+  if (cart.length === 0) {
+    alert("⚠️ Cart is empty!");
     return;
   }
-  
-  if (selectedOrders.length === 0) {
-    alert('⚠️ Please add at least one item to order!');
-    return;
-  }
+  const party = document.getElementById("partyName").value.trim();
+  const salesman = document.getElementById("salesmanName").value.trim();
+  const date = document.getElementById("orderDate").value;
 
-  const worksheetData = [
-    ["Party Name", "Salesman Name", "SAP Code", "Brand Name", "Order Qty", "Free Qty", "Total Qty"],
-    ...selectedOrders.map(order => [
-      partyName,
-      salesmanName,
-      order.sapCode,
-      order.brandName,
-      order.orderQty,
-      order.freeQty,
-      order.totalQty
-    ])
+  let totalValue = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+
+  const wsData = [
+    ["Party Name", "Salesman Name", "Date", "SAP Code", "Brand Name", "Qty", "Unit Price", "Line Total"],
+    ...cart.map(i => [party, salesman, date, i.sapCode, i.brand, i.qty, i.price, i.lineTotal]),
+    [],
+    ["", "", "", "", "", "", "Total Order Value", totalValue]
   ];
 
-  const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-
-  XLSX.writeFile(workbook, `Order_${partyName.replace(/\s+/g, '_')}.xlsx`);
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Order");
+  XLSX.writeFile(wb, `Order_${party.replace(/\s+/g, '_')}.xlsx`);
 }
 </script>
 
