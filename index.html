@@ -191,7 +191,12 @@ document.getElementById("searchBox").addEventListener("input", function() {
   suggestionsDiv.innerHTML = "";
   matches.forEach(row => {
     const div = document.createElement("div");
-    div.textContent = `${row[1]} (₹${row[5]})`;
+    div.innerHTML = `
+      <span style="color:#007bff;font-weight:bold;">${row[1]}</span> | 
+      <span style="color:#28a745;">${row[3]}</span> | 
+      <span style="color:#ff9800;">${row[4]}</span> | 
+      <span style="color:#e91e63;font-weight:bold;">₹${row[5]}</span>
+    `;
     div.onclick = () => {
       selectedItemData = row;
       document.getElementById("selectedItem").value = row[1];
