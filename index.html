@@ -259,10 +259,14 @@ function downloadExcel() {
   let totalValue = cart.reduce((sum, item) => sum + item.lineTotal, 0);
 
   const wsData = [
-    ["Party Name", "Salesman Name", "Date", "SAP Code", "Brand Name", "Qty", "Unit Price", "Line Total"],
-    ...cart.map(i => [party, salesman, date, i.sapCode, i.brand, i.qty, i.price, i.lineTotal.toFixed(2)]),
+    [`Party Name:`, party],
+    [`Salesman Name:`, salesman],
+    [`Date:`, date],
     [],
-    ["", "", "", "", "", "", "Total Order Value", totalValue.toFixed(2)]
+    ["SAP Code", "Brand Name", "Qty", "Unit Price", "Line Total"],
+    ...cart.map(i => [i.sapCode, i.brand, i.qty, i.price, i.lineTotal.toFixed(2)]),
+    [],
+    ["", "", "", "Total Order Value", totalValue.toFixed(2)]
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -270,6 +274,7 @@ function downloadExcel() {
   XLSX.utils.book_append_sheet(wb, ws, "Order");
   XLSX.writeFile(wb, `Order_${party.replace(/\s+/g, '_')}.xlsx`);
 }
+
 </script>
 
 </body>
