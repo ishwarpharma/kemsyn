@@ -275,12 +275,12 @@ function downloadExcel() {
     ...cart.map(i => [
       i.sapCode,
       i.brand,
-      i.qty, // left aligned
-      parseFloat(i.price).toFixed(2), // fixed 2 decimals
-      i.lineTotal.toFixed(2) // left aligned
+      i.qty,
+      parseFloat(i.price).toFixed(2),
+      i.lineTotal.toFixed(2)
     ]),
     [],
-    ["", "", "", "Total Order Value", totalValue] // rounded total
+    ["", "", "", "Total Order Value", totalValue]
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -296,14 +296,14 @@ function downloadExcel() {
   });
   ws['!cols'] = colWidths;
 
-  // Left align Qty, Unit Price, Line Total columns
-  const alignLeftCols = [2, 3, 4]; // column indexes in wsData
-  alignLeftCols.forEach(colIdx => {
+  // Right align Qty, Unit Price, Line Total columns
+  const alignRightCols = [2, 3, 4]; // column indexes in wsData
+  alignRightCols.forEach(colIdx => {
     for (let rowIdx = 5; rowIdx < wsData.length; rowIdx++) { // data starts from row 5
       const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
       if (ws[cellRef]) {
         if (!ws[cellRef].s) ws[cellRef].s = {};
-        ws[cellRef].s.alignment = { horizontal: "left" };
+        ws[cellRef].s.alignment = { horizontal: "right" };
       }
     }
   });
