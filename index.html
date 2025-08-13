@@ -275,9 +275,9 @@ function downloadExcel() {
     ...cart.map(i => [
       i.sapCode,
       i.brand,
-      i.qty,
-      parseFloat(i.price).toFixed(2),
-      parseFloat(i.lineTotal).toFixed(2)
+      i.qty, // left aligned
+      parseFloat(i.price).toFixed(2), // fixed 2 decimals
+      i.lineTotal.toFixed(2) // left aligned
     ]),
     [],
     ["", "", "", "Total Order Value", totalValue] // rounded total
@@ -285,9 +285,9 @@ function downloadExcel() {
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Auto column widths
+  // Auto column width adjustment
   const colWidths = wsData[0].map((_, colIndex) => {
-    let maxLength = 10;
+    let maxLength = 10; // minimum width
     wsData.forEach(row => {
       const cellValue = row[colIndex] ? row[colIndex].toString() : "";
       maxLength = Math.max(maxLength, cellValue.length);
@@ -296,15 +296,16 @@ function downloadExcel() {
   });
   ws['!cols'] = colWidths;
 
-  // Right align Qty, Unit Price, Line Total
-  const rightAlignCols = [2, 3, 4]; // zero-based indexes
-  rightAlignCols.forEach(colIndex => {
-    wsData.forEach((_, rowIndex) => {
-      const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
-      if (!ws[cellRef]) return;
-      if (!ws[cellRef].s) ws[cellRef].s = {};
-      ws[cellRef].s.alignment = { horizontal: "right" };
-    });
+  // Left align Qty, Unit Price, Line Total columns
+  const alignLeftCols = [2, 3, 4]; // column indexes in wsData
+  alignLeftCols.forEach(colIdx => {
+    for (let rowIdx = 5; rowIdx < wsData.length; rowIdx++) { // data starts from row 5
+      const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
+      if (ws[cellRef]) {
+        if (!ws[cellRef].s) ws[cellRef].s = {};
+        ws[cellRef].s.alignment = { horizontal: "left" };
+      }
+    }
   });
 
   const wb = XLSX.utils.book_new();
