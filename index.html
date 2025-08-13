@@ -276,8 +276,8 @@ function downloadExcel() {
       i.sapCode,
       i.brand,
       i.qty,
-      i.price.toFixed(2),
-      i.lineTotal.toFixed(2)
+      parseFloat(i.price).toFixed(2),
+      parseFloat(i.lineTotal).toFixed(2)
     ]),
     [],
     ["", "", "", "Total Order Value", totalValue] // rounded total
@@ -285,16 +285,27 @@ function downloadExcel() {
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Auto column width adjustment
+  // Auto column widths
   const colWidths = wsData[0].map((_, colIndex) => {
-    let maxLength = 10; // minimum column width
+    let maxLength = 10;
     wsData.forEach(row => {
       const cellValue = row[colIndex] ? row[colIndex].toString() : "";
       maxLength = Math.max(maxLength, cellValue.length);
     });
-    return { wch: maxLength + 2 }; // add padding
+    return { wch: maxLength + 2 };
   });
   ws['!cols'] = colWidths;
+
+  // Right align Qty, Unit Price, Line Total
+  const rightAlignCols = [2, 3, 4]; // zero-based indexes
+  rightAlignCols.forEach(colIndex => {
+    wsData.forEach((_, rowIndex) => {
+      const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+      if (!ws[cellRef]) return;
+      if (!ws[cellRef].s) ws[cellRef].s = {};
+      ws[cellRef].s.alignment = { horizontal: "right" };
+    });
+  });
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Order");
