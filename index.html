@@ -264,7 +264,7 @@ function downloadExcel() {
   const party = document.getElementById("partyName").value.trim();
   const salesman = document.getElementById("salesmanName").value.trim();
   const date = document.getElementById("orderDate").value;
-  let totalValue = cart.reduce((sum, item) => sum + item.lineTotal, 0);
+  let totalValue = Math.round(cart.reduce((sum, item) => sum + item.lineTotal, 0)); // rounded
 
   const wsData = [
     [`Party Name:`, party],
@@ -272,12 +272,30 @@ function downloadExcel() {
     [`Date:`, date],
     [],
     ["SAP Code", "Brand Name", "Qty", "Unit Price", "Line Total"],
-    ...cart.map(i => [i.sapCode, i.brand, i.qty, i.price, i.lineTotal.toFixed(2)]),
+    ...cart.map(i => [
+      i.sapCode,
+      i.brand,
+      i.qty,
+      i.price.toFixed(2),
+      i.lineTotal.toFixed(2)
+    ]),
     [],
-    ["", "", "", "Total Order Value", totalValue.toFixed(2)]
+    ["", "", "", "Total Order Value", totalValue] // rounded total
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Auto column width adjustment
+  const colWidths = wsData[0].map((_, colIndex) => {
+    let maxLength = 10; // minimum column width
+    wsData.forEach(row => {
+      const cellValue = row[colIndex] ? row[colIndex].toString() : "";
+      maxLength = Math.max(maxLength, cellValue.length);
+    });
+    return { wch: maxLength + 2 }; // add padding
+  });
+  ws['!cols'] = colWidths;
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Order");
   XLSX.writeFile(wb, `Order_${party.replace(/\s+/g, '_')}.xlsx`);
