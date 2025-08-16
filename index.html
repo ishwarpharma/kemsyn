@@ -310,7 +310,7 @@ function downloadExcel() {
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Order");
-  XLSX.writeFile(wb, `Order_${party.replace(/\s+/g, '_')}.xlsx`);
+  XLSX.writeFile(wb, `${party.replace(/\s+/g, '_')}_${totalValue}.xlsx`);
 }
 
 </script>
