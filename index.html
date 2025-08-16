@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>🛒 Kemsyn Order Form</title>
-<script src="https://unpkg.com/xlsx-style@latest/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
 <style>
   body {
     font-family: 'Poppins', sans-serif;
@@ -264,7 +264,7 @@ function downloadExcel() {
   const party = document.getElementById("partyName").value.trim();
   const salesman = document.getElementById("salesmanName").value.trim();
   const date = document.getElementById("orderDate").value;
-  let totalValue = Math.round(cart.reduce((sum, item) => sum + item.lineTotal, 0));
+  let totalValue = Math.round(cart.reduce((sum, item) => sum + item.lineTotal, 0)); // rounded
 
   const wsData = [
     [`Party Name:`, party],
@@ -275,19 +275,19 @@ function downloadExcel() {
     ...cart.map(i => [
       i.sapCode,
       i.brand,
-      i.qty,
-      parseFloat(i.price).toFixed(2),
-      i.lineTotal.toFixed(2)
+      i.qty, // left aligned
+      parseFloat(i.price).toFixed(2), // fixed 2 decimals
+      i.lineTotal.toFixed(2) // left aligned
     ]),
     [],
-    ["", "", "", "Total Order Value", totalValue]
+    ["", "", "", "Total Order Value", totalValue] // rounded total
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Auto column width
+  // Auto column width adjustment
   const colWidths = wsData[0].map((_, colIndex) => {
-    let maxLength = 10;
+    let maxLength = 10; // minimum width
     wsData.forEach(row => {
       const cellValue = row[colIndex] ? row[colIndex].toString() : "";
       maxLength = Math.max(maxLength, cellValue.length);
@@ -296,37 +296,21 @@ function downloadExcel() {
   });
   ws['!cols'] = colWidths;
 
-  // Apply styles
-  const rightAlignCols = [2, 3, 4]; // Qty, Unit Price, Line Total
-  for (let rowIdx = 4; rowIdx < wsData.length; rowIdx++) { // start at header row
-    rightAlignCols.forEach(colIdx => {
+  // Left align Qty, Unit Price, Line Total columns
+  const alignLeftCols = [2, 3, 4]; // column indexes in wsData
+  alignLeftCols.forEach(colIdx => {
+    for (let rowIdx = 5; rowIdx < wsData.length; rowIdx++) { // data starts from row 5
       const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
       if (ws[cellRef]) {
-        ws[cellRef].s = { alignment: { horizontal: "right" } };
+        if (!ws[cellRef].s) ws[cellRef].s = {};
+        ws[cellRef].s.alignment = { horizontal: "left" };
       }
-    });
-  }
-
-  // Bold header row
-  for (let colIdx = 0; colIdx <= 4; colIdx++) {
-    const cellRef = XLSX.utils.encode_cell({ r: 4, c: colIdx });
-    if (ws[cellRef]) {
-      ws[cellRef].s = { font: { bold: true }, alignment: { horizontal: colIdx >= 2 ? "right" : "left" } };
     }
-  }
-
-  // Bold total row
-  const totalRowIdx = wsData.length - 1;
-  for (let colIdx = 0; colIdx <= 4; colIdx++) {
-    const cellRef = XLSX.utils.encode_cell({ r: totalRowIdx, c: colIdx });
-    if (ws[cellRef]) {
-      ws[cellRef].s = { font: { bold: true }, alignment: { horizontal: colIdx >= 2 ? "right" : "left" } };
-    }
-  }
+  });
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Order");
-  XLSX.writeFile(wb, `${party.replace(/\s+/g, '_')}_${totalValue}.xlsx`);
+  XLSX.writeFile(wb, `Order_${party.replace(/\s+/g, '_')}.xlsx`);
 }
 
 </script>
