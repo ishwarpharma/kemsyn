@@ -8,50 +8,66 @@
 <style>
   body {
     font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+    background: linear-gradient(135deg, #faaca8, #ddd6f3 90%);
     margin: 0;
     padding: 0;
   }
-  .screen {
-    display: none;
-    padding: 20px;
-    min-height: 100vh;
+  .container {
+    background: rgba(255,255,255,0.97);
+    box-shadow: 0 0 24px rgba(0,0,0,0.07);
+    border-radius: 18px;
+    max-width: 420px;
+    margin: 40px auto;
+    padding: 28px 18px 24px 18px;
   }
-  .active {
-    display: block;
+  @media (max-width: 600px) {
+    .container {
+      padding: 12px;
+      max-width: 98vw;
+    }
+    h1 { font-size: 1.6em; }
   }
   h1 {
     text-align: center;
-    color: #fff;
-    margin-bottom: 20px;
+    color: #4B4453;
+    margin-bottom: 18px;
+    font-size: 2em;
   }
   .input-group {
-    margin-bottom: 15px;
+    margin-bottom: 17px;
     position: relative;
   }
   label {
-    font-weight: bold;
-    font-size: 1.1em;
+    font-weight: 600;
+    font-size: 1.11em;
+    color: #593196;
+    display: block;
+    margin-bottom: 3px;
   }
   input, button {
     width: 100%;
     padding: 10px;
-    margin-top: 5px;
+    margin-top: 3px;
     border-radius: 8px;
-    border: none;
+    border: 1px solid #f8c8dc;
     font-size: 1em;
+    box-sizing: border-box;
+    outline: none;
   }
   input {
-    background: #fff;
+    background: #fbfbfc;
+    color: #252440;
   }
   button {
-    background: #ff6f91;
+    background: linear-gradient(90deg, #7a7efd 70%, #ffa6c1 95%);
     color: white;
-    font-weight: bold;
+    font-weight: 600;
     cursor: pointer;
+    border: none;
+    transition: background 0.22s;
   }
   button:hover {
-    background: #ff9671;
+    background: linear-gradient(90deg, #7a7efd 55%, #faaca8 95%);
   }
   .suggestions {
     background: white;
@@ -61,9 +77,10 @@
     left: 0;
     right: 0;
     z-index: 10;
-    box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
-    max-height: 200px;
+    box-shadow: 0px 4px 8px rgba(0,0,0,0.08);
+    max-height: 180px;
     overflow-y: auto;
+    font-size: 0.97em;
   }
   .suggestions div {
     padding: 8px;
@@ -71,26 +88,29 @@
     border-bottom: 1px solid #eee;
   }
   .suggestions div:hover {
-    background: #f1f1f1;
+    background: #f1eff8;
   }
   .cart {
-    background: rgba(255,255,255,0.9);
+    background: #fff8f7;
     border-radius: 10px;
-    padding: 10px;
-    margin-top: 15px;
+    padding: 10px 14px;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    box-shadow: 0 0 8px #faaca860;
   }
   .cart-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 0;
-    border-bottom: 1px solid #ddd;
+    padding: 6px 0;
+    border-bottom: 1px solid #f5eefa;
+    font-size: 1em;
   }
   .cart-item:last-child {
     border-bottom: none;
   }
   .remove-link {
-    color: red;
+    color: #f85888;
     cursor: pointer;
     font-weight: bold;
     font-size: 1.2em;
@@ -98,68 +118,101 @@
   }
   .total {
     font-weight: bold;
-    font-size: 1.2em;
+    font-size: 1.18em;
     text-align: right;
     margin-top: 10px;
+    color: #554a6f;
+  }
+  .error-message {
+    color: #d8000c;
+    background: #ffd2d2;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    text-align: center;
+    display: none;
+  }
+  .actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .actions button {
+    flex: 1;
   }
 </style>
 </head>
 <body>
+  <div class="container">
+    <!-- Error message div -->
+    <div class="error-message" id="errorMessage"></div>
 
-<!-- Screen 1 -->
-<div class="screen active" id="screen1">
-  <h1>🧾 Order Details</h1>
-  <div class="input-group">
-    <label>Party Name</label>
-    <input type="text" id="partyName" placeholder="Enter party name">
-  </div>
-  <div class="input-group">
-    <label>Salesman Name</label>
-    <input type="text" id="salesmanName" placeholder="Enter salesman name">
-  </div>
-  <div class="input-group">
-    <label>Date</label>
-    <input type="date" id="orderDate">
-  </div>
-  <button onclick="goToScreen2()">➡️ Next</button>
-</div>
+    <!-- Screen 1 -->
+    <div class="screen active" id="screen1">
+      <h1>🧾 Order Details</h1>
+      <div class="input-group">
+        <label for="partyName">Party Name</label>
+        <input type="text" id="partyName" placeholder="Enter party name" aria-label="Party Name">
+      </div>
+      <div class="input-group">
+        <label for="salesmanName">Salesman Name</label>
+        <input type="text" id="salesmanName" placeholder="Enter salesman name" aria-label="Salesman Name">
+      </div>
+      <div class="input-group">
+        <label for="orderDate">Date</label>
+        <input type="date" id="orderDate" aria-label="Order Date">
+      </div>
+      <div class="actions">
+        <button onclick="goToScreen2()" aria-label="Go to next step">➡️ Next</button>
+        <button onclick="resetOrder()" aria-label="Reset Form" style="background:#faaca8;">⟲ Reset</button>
+      </div>
+    </div>
 
-<!-- Screen 2 -->
-<div class="screen" id="screen2">
-  <h1>🛒 Order Items</h1>
-  <div class="input-group">
-    <label>Search Item</label>
-    <input type="text" id="searchBox" placeholder="Search brand...">
-    <div id="suggestions" class="suggestions" style="display:none;"></div>
+    <!-- Screen 2 -->
+    <div class="screen" id="screen2" style="display:none;">
+      <h1>🛒 Order Items</h1>
+      <div class="input-group">
+        <label for="searchBox">Search Item</label>
+        <input type="text" id="searchBox" placeholder="Search brand..." aria-label="Search Brand">
+        <div id="suggestions" class="suggestions" style="display:none;"></div>
+      </div>
+      <div class="input-group">
+        <label for="selectedItem">Selected Item</label>
+        <input type="text" id="selectedItem" readonly aria-label="Selected Item">
+      </div>
+      <div class="input-group">
+        <label for="itemQty">Qty</label>
+        <input type="number" id="itemQty" inputmode="numeric" min="1" placeholder="Enter quantity" aria-label="Quantity">
+      </div>
+      <button onclick="addToCart()">➕ Add to Cart</button>
+      <div class="cart" id="cartContainer">
+        <h3>🛍 Cart</h3>
+        <div id="cartItems"></div>
+        <div class="total">Total: ₹<span id="totalValue">0</span></div>
+      </div>
+      <div class="actions">
+        <button onclick="goToScreen1()" aria-label="Back to details" style="background:#faaca8;">⬅️ Back</button>
+        <button onclick="downloadExcel()" aria-label="Submit Order">📥 Submit Order</button>
+      </div>
+    </div>
   </div>
-  <div class="input-group">
-    <label>Selected Item</label>
-    <input type="text" id="selectedItem" readonly>
-  </div>
-  <div class="input-group">
-    <label>Qty</label>
-    <input type="number" id="itemQty" inputmode="numeric" placeholder="Enter quantity">
-  </div>
-  <button onclick="addToCart()">➕ Add to Cart</button>
-
-  <div class="cart" id="cartContainer">
-    <h3>🛍 Cart</h3>
-    <div id="cartItems"></div>
-    <div class="total">Total: ₹<span id="totalValue">0</span></div>
-  </div>
-
-  <button onclick="downloadExcel()">📥 Submit Order</button>
-</div>
-
 <script>
 let items = [];
 let cart = [];
 let selectedItemData = null;
 
+// Utility to show error messages
+function showError(msg) {
+  const errDiv = document.getElementById("errorMessage");
+  errDiv.textContent = msg;
+  errDiv.style.display = 'block';
+  setTimeout(() => { errDiv.style.display = 'none'; }, 3500);
+}
+
 // Set today's date
 document.getElementById("orderDate").valueAsDate = new Date();
 
-// Fetch Excel file
+// Fetch Excel data file
 fetch('kemsyn_google_form.xlsx')
   .then(res => res.arrayBuffer())
   .then(data => {
@@ -167,19 +220,43 @@ fetch('kemsyn_google_form.xlsx')
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1});
     items = jsonData.slice(1); // Skip header row
-  });
+  })
+  .catch(() => showError('Unable to load items list. Please check file!'));
 
+// Screen navigation
 function goToScreen2() {
   const party = document.getElementById("partyName").value.trim();
   const salesman = document.getElementById("salesmanName").value.trim();
   if (!party || !salesman) {
-    alert("⚠️ Please fill Party Name and Salesman Name!");
+    showError("⚠️ Please fill Party Name and Salesman Name!");
     return;
   }
   document.getElementById("screen1").classList.remove("active");
+  document.getElementById("screen1").style.display = "none";
   document.getElementById("screen2").classList.add("active");
+  document.getElementById("screen2").style.display = "block";
+}
+function goToScreen1() {
+  document.getElementById("screen2").classList.remove("active");
+  document.getElementById("screen2").style.display = "none";
+  document.getElementById("screen1").classList.add("active");
+  document.getElementById("screen1").style.display = "block";
 }
 
+// Reset order
+function resetOrder() {
+  if (confirm('Clear the entire form and cart?')) {
+    document.getElementById("partyName").value = "";
+    document.getElementById("salesmanName").value = "";
+    document.getElementById("orderDate").valueAsDate = new Date();
+    cart = [];
+    selectedItemData = null;
+    updateCart();
+    goToScreen1();
+  }
+}
+
+// Suggestions logic
 document.getElementById("searchBox").addEventListener("input", function() {
   const keyword = this.value.toLowerCase();
   const suggestionsDiv = document.getElementById("suggestions");
@@ -190,13 +267,13 @@ document.getElementById("searchBox").addEventListener("input", function() {
   const matches = items.filter(row => (row[1] || "").toLowerCase().includes(keyword));
   suggestionsDiv.innerHTML = "";
   matches.forEach(row => {
-    const mrp = parseFloat(row[4]) || 0;
-    const rate = parseFloat(row[5]) || 0;
+    const mrp = parseFloat(row) || 0;
+    const rate = parseFloat(row) || 0;
     const div = document.createElement("div");
     div.innerHTML = `
       <span style="color:#007bff;font-weight:bold;">${row[1]}</span> | 
       <span style="color:#9c27b0;">${row[2]}</span> |
-      <span style="color:#ff9800;">${row[3]}</span> | 
+      <span style="color:#ff9800;">${row}</span> | 
       <span style="color:#28a745;">${mrp.toFixed(2)}</span> | 
       <span style="color:#e91e63;font-weight:bold;">₹${rate.toFixed(2)}</span>    
     `;
@@ -211,21 +288,21 @@ document.getElementById("searchBox").addEventListener("input", function() {
   suggestionsDiv.style.display = matches.length ? "block" : "none";
 });
 
+// Add item to cart
 function addToCart() {
   if (!selectedItemData) {
-    alert("⚠️ Please select an item!");
+    showError("⚠️ Please select an item!");
     return;
   }
   const qty = parseInt(document.getElementById("itemQty").value) || 0;
   if (qty <= 0) {
-    alert("⚠️ Please enter quantity!");
+    showError("⚠️ Please enter quantity!");
     return;
   }
   const sapCode = selectedItemData[0];
   const brand = selectedItemData[1];
-  const price = parseFloat(selectedItemData[5]) || 0;
+  const price = parseFloat(selectedItemData) || 0;
   const lineTotal = price * qty;
-
   cart.push({ sapCode, brand, qty, price, lineTotal });
   selectedItemData = null;
   document.getElementById("selectedItem").value = "";
@@ -244,7 +321,7 @@ function updateCart() {
     div.className = "cart-item";
     div.innerHTML = `
       ${item.brand} - Qty: ${item.qty} - ₹${item.price} = ₹${item.lineTotal.toFixed(2)}
-      <span class="remove-link" onclick="removeFromCart(${index})">×</span>
+      <span class="remove-link" onclick="removeFromCart(${index})" title="Remove">×</span>
     `;
     cartDiv.appendChild(div);
   });
@@ -252,20 +329,22 @@ function updateCart() {
 }
 
 function removeFromCart(index) {
-  cart.splice(index, 1);
-  updateCart();
+  if (confirm('Remove item from cart?')) {
+    cart.splice(index, 1);
+    updateCart();
+  }
 }
 
+// Excel download
 function downloadExcel() {
   if (cart.length === 0) {
-    alert("⚠️ Cart is empty!");
+    showError("⚠️ Cart is empty!");
     return;
   }
   const party = document.getElementById("partyName").value.trim();
   const salesman = document.getElementById("salesmanName").value.trim();
   const date = document.getElementById("orderDate").value;
   let totalValue = Math.round(cart.reduce((sum, item) => sum + item.lineTotal, 0)); // rounded
-
   const wsData = [
     [`Party Name:`, party],
     [`Salesman Name:`, salesman],
@@ -275,19 +354,16 @@ function downloadExcel() {
     ...cart.map(i => [
       i.sapCode,
       i.brand,
-      i.qty, // left aligned
-      parseFloat(i.price).toFixed(2), // fixed 2 decimals
-      i.lineTotal.toFixed(2) // left aligned
+      i.qty,
+      parseFloat(i.price).toFixed(2),
+      i.lineTotal.toFixed(2)
     ]),
     [],
-    ["", "", "", "Total Order Value", totalValue] // rounded total
+    ["", "", "", "Total Order Value", totalValue]
   ];
-
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-  // Auto column width adjustment
   const colWidths = wsData[0].map((_, colIndex) => {
-    let maxLength = 10; // minimum width
+    let maxLength = 10;
     wsData.forEach(row => {
       const cellValue = row[colIndex] ? row[colIndex].toString() : "";
       maxLength = Math.max(maxLength, cellValue.length);
@@ -295,11 +371,9 @@ function downloadExcel() {
     return { wch: maxLength + 2 };
   });
   ws['!cols'] = colWidths;
-
-  // Left align Qty, Unit Price, Line Total columns
-  const alignLeftCols = [2, 3, 4]; // column indexes in wsData
+  const alignLeftCols = [2, 3, 4];
   alignLeftCols.forEach(colIdx => {
-    for (let rowIdx = 5; rowIdx < wsData.length; rowIdx++) { // data starts from row 5
+    for (let rowIdx = 5; rowIdx < wsData.length; rowIdx++) {
       const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
       if (ws[cellRef]) {
         if (!ws[cellRef].s) ws[cellRef].s = {};
@@ -307,13 +381,10 @@ function downloadExcel() {
       }
     }
   });
-
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Order");
   XLSX.writeFile(wb, `${party.replace(/\s+/g, '_')}_${totalValue}.xlsx`);
 }
-
 </script>
-
 </body>
 </html>
