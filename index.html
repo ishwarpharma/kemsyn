@@ -40,6 +40,7 @@
     border-radius: 8px;
     border: none;
     font-size: 1em;
+    box-sizing: border-box;
   }
   input {
     background: #fff;
@@ -69,6 +70,7 @@
     padding: 8px;
     cursor: pointer;
     border-bottom: 1px solid #eee;
+    font-size: 0.9em;
   }
   .suggestions div:hover {
     background: #f1f1f1;
@@ -85,6 +87,7 @@
     align-items: center;
     padding: 5px 0;
     border-bottom: 1px solid #ddd;
+    font-size: 0.9em;
   }
   .cart-item:last-child {
     border-bottom: none;
@@ -95,12 +98,99 @@
     font-weight: bold;
     font-size: 1.2em;
     margin-left: 8px;
+    flex-shrink: 0;
   }
   .total {
     font-weight: bold;
     font-size: 1.2em;
     text-align: right;
     margin-top: 10px;
+  }
+
+  /* Batch Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    width: 90%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+  }
+  .modal h2 {
+    color: #ff6f91;
+    margin: 0 0 5px 0;
+    font-size: 1.1em;
+  }
+  .modal .subtitle {
+    font-size: 0.85em;
+    color: #999;
+    margin-bottom: 15px;
+  }
+  .batch-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+  }
+  .batch-table th {
+    background: #ff6f91;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+  }
+  .batch-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+  }
+  .batch-table tr:last-child td {
+    border-bottom: none;
+  }
+  .batch-table tr:hover td {
+    background: #fff0f3;
+    cursor: pointer;
+  }
+  .batch-table input[type="radio"] {
+    width: auto;
+    margin: 0;
+    accent-color: #ff6f91;
+    transform: scale(1.3);
+  }
+  .modal-btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  .modal-btn-row button {
+    flex: 1;
+  }
+  .btn-cancel {
+    background: #ccc !important;
+    color: #333 !important;
+  }
+  .btn-cancel:hover {
+    background: #bbb !important;
+  }
+  .stock-tag {
+    color: #388e3c;
+    font-weight: bold;
+  }
+  .stock-zero {
+    color: #e53935;
+    font-weight: bold;
   }
 </style>
 </head>
@@ -151,23 +241,100 @@
   <button onclick="downloadExcel()">📥 Submit Order</button>
 </div>
 
+<!-- Batch Selection Modal -->
+<div class="modal-overlay" id="batchModal">
+  <div class="modal">
+    <h2 id="batchModalTitle">Select Batch</h2>
+    <div class="subtitle">Choose the batch you wish to bill</div>
+    <table class="batch-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Batch No.</th>
+          <th>Expiry</th>
+          <th>Stock Qty</th>
+        </tr>
+      </thead>
+      <tbody id="batchTableBody"></tbody>
+    </table>
+    <div class="modal-btn-row">
+      <button class="btn-cancel" onclick="closeBatchModal()">Cancel</button>
+      <button onclick="confirmBatchSelection()">✅ Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script>
-let items = [];
+let items = [];       // from kemsyn*.xlsx
+let stockData = [];   // from KSTOCK.xlsx
 let cart = [];
-let selectedItemData = null;
+let selectedItemData = null;  // pending item before batch selection
+let pendingBatches = [];       // batches shown in modal
 
 // Set today's date
 document.getElementById("orderDate").valueAsDate = new Date();
 
-// Fetch Excel file
-fetch('kemsyn_google_form.xlsx')
+// Convert Excel date serial to DD-MM-YYYY
+function excelDateToString(serial) {
+  if (!serial || isNaN(serial)) return "";
+  const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
+  const d = date.getUTCDate().toString().padStart(2, "0");
+  const m = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const y = date.getUTCFullYear();
+  return `${d}-${m}-${y}`;
+}
+
+// Format number with commas
+function fmtQty(n) {
+  return Number(n || 0).toLocaleString("en-IN");
+}
+
+// Load kemsyn product list
+fetch("kemsyn_google_form.xlsx")
   .then(res => res.arrayBuffer())
   .then(data => {
-    const workbook = XLSX.read(data, {type: "array"});
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1});
-    items = jsonData.slice(1); // Skip header row
+    const wb = XLSX.read(data, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    items = jsonData.slice(1);
   });
+
+// Load KSTOCK
+fetch("KSTOCK.xlsx")
+  .then(res => res.arrayBuffer())
+  .then(data => {
+    const wb = XLSX.read(data, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    stockData = jsonData.slice(1); // skip header
+  })
+  .catch(() => {
+    console.warn("KSTOCK.xlsx not found — stock info will be unavailable.");
+  });
+
+// Get total unrestricted stock for a SAP/Item code
+function getTotalStock(sapCode) {
+  const code = String(sapCode).trim();
+  let total = 0;
+  stockData.forEach(row => {
+    if (String(row[0]).trim() === code) {
+      total += parseFloat(row[6]) || 0; // column G (index 6)
+    }
+  });
+  return total;
+}
+
+// Get batches for a SAP code
+function getBatches(sapCode) {
+  const code = String(sapCode).trim();
+  return stockData
+    .filter(row => String(row[0]).trim() === code)
+    .map(row => ({
+      batchNo: row[3] || "",           // col D
+      expiry: excelDateToString(row[2]), // col C (serial)
+      qty: parseFloat(row[6]) || 0     // col G
+    }));
+}
 
 function goToScreen2() {
   const party = document.getElementById("partyName").value.trim();
@@ -180,7 +347,7 @@ function goToScreen2() {
   document.getElementById("screen2").classList.add("active");
 }
 
-document.getElementById("searchBox").addEventListener("input", function() {
+document.getElementById("searchBox").addEventListener("input", function () {
   const keyword = this.value.toLowerCase();
   const suggestionsDiv = document.getElementById("suggestions");
   if (keyword.length < 2) {
@@ -192,24 +359,85 @@ document.getElementById("searchBox").addEventListener("input", function() {
   matches.forEach(row => {
     const mrp = parseFloat(row[4]) || 0;
     const rate = parseFloat(row[5]) || 0;
+    const sapCode = row[0];
+    const totalStock = getTotalStock(sapCode);
+    const stockClass = totalStock > 0 ? "stock-tag" : "stock-zero";
     const div = document.createElement("div");
     div.innerHTML = `
       <span style="color:#007bff;font-weight:bold;">${row[1]}</span> | 
       <span style="color:#9c27b0;">${row[2]}</span> |
       <span style="color:#ff9800;">${row[3]}</span> | 
-      <span style="color:#28a745;">${mrp.toFixed(2)}</span> | 
-      <span style="color:#e91e63;font-weight:bold;">₹${rate.toFixed(2)}</span>    
+      MRP: <span style="color:#28a745;">${mrp.toFixed(2)}</span> | 
+      Rate: <span style="color:#e91e63;font-weight:bold;">₹${rate.toFixed(2)}</span> |
+      Stock: <span class="${stockClass}">${fmtQty(totalStock)}</span>
     `;
     div.onclick = () => {
       selectedItemData = row;
-      document.getElementById("selectedItem").value = row[1];
+      document.getElementById("searchBox").value = "";
       suggestionsDiv.style.display = "none";
-      document.getElementById("itemQty").focus();
+      openBatchModal(row);
     };
     suggestionsDiv.appendChild(div);
   });
   suggestionsDiv.style.display = matches.length ? "block" : "none";
 });
+
+// ---- Batch Modal ----
+function openBatchModal(row) {
+  const sapCode = row[0];
+  const itemName = row[1];
+  pendingBatches = getBatches(sapCode);
+
+  document.getElementById("batchModalTitle").textContent = itemName;
+  const tbody = document.getElementById("batchTableBody");
+  tbody.innerHTML = "";
+
+  if (pendingBatches.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#999;padding:12px;">No stock data available</td></tr>`;
+  } else {
+    pendingBatches.forEach((b, i) => {
+      const tr = document.createElement("tr");
+      tr.onclick = () => {
+        document.getElementById(`batch_radio_${i}`).checked = true;
+      };
+      tr.innerHTML = `
+        <td><input type="radio" name="batchRadio" id="batch_radio_${i}" value="${i}" ${i === 0 ? "checked" : ""}></td>
+        <td><strong>${b.batchNo}</strong></td>
+        <td>${b.expiry}</td>
+        <td class="${b.qty > 0 ? 'stock-tag' : 'stock-zero'}">${fmtQty(b.qty)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById("batchModal").classList.add("open");
+}
+
+function closeBatchModal() {
+  document.getElementById("batchModal").classList.remove("open");
+  selectedItemData = null;
+  pendingBatches = [];
+  document.getElementById("selectedItem").value = "";
+}
+
+function confirmBatchSelection() {
+  if (!selectedItemData) return;
+
+  let selectedBatch = null;
+  if (pendingBatches.length > 0) {
+    const radios = document.getElementsByName("batchRadio");
+    let selectedIndex = 0;
+    radios.forEach(r => { if (r.checked) selectedIndex = parseInt(r.value); });
+    selectedBatch = pendingBatches[selectedIndex];
+  }
+
+  document.getElementById("selectedItem").value = selectedItemData[1];
+  document.getElementById("batchModal").classList.remove("open");
+
+  // Store selected batch on the selectedItemData for addToCart to use
+  selectedItemData._selectedBatch = selectedBatch;
+  document.getElementById("itemQty").focus();
+}
 
 function addToCart() {
   if (!selectedItemData) {
@@ -225,9 +453,13 @@ function addToCart() {
   const brand = selectedItemData[1];
   const price = parseFloat(selectedItemData[5]) || 0;
   const lineTotal = price * qty;
+  const batch = selectedItemData._selectedBatch;
+  const batchNo = batch ? batch.batchNo : "";
+  const expiry = batch ? batch.expiry : "";
 
-  cart.push({ sapCode, brand, qty, price, lineTotal });
+  cart.push({ sapCode, brand, qty, batchNo, expiry, price, lineTotal });
   selectedItemData = null;
+  pendingBatches = [];
   document.getElementById("selectedItem").value = "";
   document.getElementById("itemQty").value = "";
   document.getElementById("searchBox").value = "";
@@ -243,7 +475,11 @@ function updateCart() {
     const div = document.createElement("div");
     div.className = "cart-item";
     div.innerHTML = `
-      ${item.brand} - Qty: ${item.qty} - ₹${item.price} = ₹${item.lineTotal.toFixed(2)}
+      <div>
+        <strong>${item.brand}</strong><br>
+        <small>Batch: ${item.batchNo || "—"} | Exp: ${item.expiry || "—"}</small><br>
+        Qty: ${item.qty} × ₹${item.price} = <strong>₹${item.lineTotal.toFixed(2)}</strong>
+      </div>
       <span class="remove-link" onclick="removeFromCart(${index})">×</span>
     `;
     cartDiv.appendChild(div);
@@ -264,55 +500,44 @@ function downloadExcel() {
   const party = document.getElementById("partyName").value.trim();
   const salesman = document.getElementById("salesmanName").value.trim();
   const date = document.getElementById("orderDate").value;
-  let totalValue = Math.round(cart.reduce((sum, item) => sum + item.lineTotal, 0)); // rounded
+  let totalValue = Math.round(cart.reduce((sum, item) => sum + item.lineTotal, 0));
 
   const wsData = [
     [`Party Name:`, party],
     [`Salesman Name:`, salesman],
     [`Date:`, date],
     [],
-    ["SAP Code", "Brand Name", "Qty", "Unit Price", "Line Total"],
+    ["SAP Code", "Brand Name", "Qty", "Batch No.", "Expiry", "Unit Price", "Line Total"],
     ...cart.map(i => [
       i.sapCode,
       i.brand,
-      i.qty, // left aligned
-      parseFloat(i.price).toFixed(2), // fixed 2 decimals
-      i.lineTotal.toFixed(2) // left aligned
+      i.qty,
+      i.batchNo || "",
+      i.expiry || "",
+      parseFloat(i.price).toFixed(2),
+      i.lineTotal.toFixed(2)
     ]),
     [],
-    ["", "", "", "Total Order Value", totalValue] // rounded total
+    ["", "", "", "", "", "Total Order Value", totalValue]
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Auto column width adjustment
+  // Auto column width
   const colWidths = wsData[0].map((_, colIndex) => {
-    let maxLength = 10; // minimum width
+    let maxLength = 10;
     wsData.forEach(row => {
       const cellValue = row[colIndex] ? row[colIndex].toString() : "";
       maxLength = Math.max(maxLength, cellValue.length);
     });
     return { wch: maxLength + 2 };
   });
-  ws['!cols'] = colWidths;
-
-  // Left align Qty, Unit Price, Line Total columns
-  const alignLeftCols = [2, 3, 4]; // column indexes in wsData
-  alignLeftCols.forEach(colIdx => {
-    for (let rowIdx = 5; rowIdx < wsData.length; rowIdx++) { // data starts from row 5
-      const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
-      if (ws[cellRef]) {
-        if (!ws[cellRef].s) ws[cellRef].s = {};
-        ws[cellRef].s.alignment = { horizontal: "left" };
-      }
-    }
-  });
+  ws["!cols"] = colWidths;
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Order");
-  XLSX.writeFile(wb, `${party.replace(/\s+/g, '_')}_${totalValue}.xlsx`);
+  XLSX.writeFile(wb, `${party.replace(/\s+/g, "_")}_${totalValue}.xlsx`);
 }
-
 </script>
 
 </body>
