@@ -559,9 +559,20 @@ let selectedBatchIndex = 0;
 
 document.getElementById("orderDate").valueAsDate = new Date();
 
-function excelDateToString(serial) {
-  if (!serial || isNaN(serial)) return "—";
-  const date = new Date(Math.round((serial - 25569) * 86400 * 1000));
+function excelDateToString(val) {
+  if (!val) return "—";
+  let date;
+  if (typeof val === "number") {
+    // Serial number from SheetJS (raw mode) — shouldn't happen with cellDates:true but kept as fallback
+    date = new Date(Math.round((val - 25569) * 86400 * 1000));
+  } else if (val instanceof Date) {
+    date = val;
+  } else if (typeof val === "string" && val.trim()) {
+    date = new Date(val);
+  } else {
+    return "—";
+  }
+  if (isNaN(date.getTime())) return "—";
   return [
     date.getUTCDate().toString().padStart(2, "0"),
     (date.getUTCMonth() + 1).toString().padStart(2, "0"),
@@ -569,11 +580,21 @@ function excelDateToString(serial) {
   ].join("-");
 }
 
-function isNearExpiry(serial) {
-  if (!serial || isNaN(serial)) return false;
-  const exp = new Date(Math.round((serial - 25569) * 86400 * 1000));
+function isNearExpiry(val) {
+  if (!val) return false;
+  let date;
+  if (typeof val === "number") {
+    date = new Date(Math.round((val - 25569) * 86400 * 1000));
+  } else if (val instanceof Date) {
+    date = val;
+  } else if (typeof val === "string" && val.trim()) {
+    date = new Date(val);
+  } else {
+    return false;
+  }
+  if (isNaN(date.getTime())) return false;
   const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() + 6);
-  return exp < cutoff;
+  return date < cutoff;
 }
 
 function fmtQty(n) { return Number(n || 0).toLocaleString("en-IN"); }
@@ -588,10 +609,22 @@ fetch("kemsyn_google_form.xlsx")
 fetch("KSTOCK.xlsx")
   .then(r => r.arrayBuffer())
   .then(data => {
-    const wb = XLSX.read(data, { type: "array" });
+    // cellDates:true makes SheetJS parse date cells as JS Date objects
+    const wb = XLSX.read(data, { type: "array", cellDates: true });
     stockData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }).slice(1);
+    console.log("KSTOCK loaded:", stockData.length, "rows. Sample:", stockData[0]);
   })
-  .catch(() => console.warn("KSTOCK.xlsx not found."));
+  .catch(e => console.warn("KSTOCK.xlsx not found.", e));
+
+// KSTOCK column layout (0-indexed, per actual file):
+//  0 = Item Code    (SAP code)
+//  1 = Item Name
+//  2 = Batch No.
+//  3 = Expiry       (Date object when cellDates:true)
+//  4 = Pack Style
+//  5 = Sales Unit
+//  6 = Unrestricted Qty
+//  7 = Transit Qty
 
 function getTotalStock(sapCode) {
   const code = String(sapCode).trim();
@@ -603,10 +636,10 @@ function getBatches(sapCode) {
   return stockData
     .filter(r => String(r[0]).trim() === code)
     .map(r => ({
-      batchNo: String(r[3] || "").trim(),
-      expiry: excelDateToString(r[2]),
-      nearExpiry: isNearExpiry(r[2]),
-      qty: parseFloat(r[6]) || 0
+      batchNo: String(r[2] || "").trim(),   // col 2 = Batch No.
+      expiry: excelDateToString(r[3]),       // col 3 = Expiry
+      nearExpiry: isNearExpiry(r[3]),        // col 3 = Expiry
+      qty: parseFloat(r[6]) || 0            // col 6 = Unrestricted Qty
     }));
 }
 
